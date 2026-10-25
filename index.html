@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestion des auditions de mineurs</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  :root {
+    --blue-900: #12307a;
+    --blue-700: #1d4ed8;
+    --blue-500: #3b82f6;
+    --blue-100: #dbeafe;
+    --blue-50:  #eff6ff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #dbe4f3;
+    --ok: #15803d;
+    --ok-bg: #dcfce7;
+    --err: #b91c1c;
+    --err-bg: #fee2e2;
+    --warn: #b45309;
+    --warn-bg: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 14px;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--blue-50), #fff 60%);
+  }
+
+  /* ---------- Barre de boutons ---------- */
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .btn-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--blue-900);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(29, 78, 216, .10);
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(29, 78, 216, .20);
+    border-color: var(--blue-500);
+  }
+  .btn-action.active {
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(29, 78, 216, .35);
+  }
+  .btn-action .ico {
+    flex: none;
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: var(--blue-100);
+    font-size: 20px;
+  }
+  .btn-action.active .ico { background: rgba(255, 255, 255, .22); }
+  .btn-action small {
+    display: block;
+    font-weight: 400;
+    font-size: 12px;
+    opacity: .75;
+    margin-top: 2px;
+  }
+
+  /* ---------- Formulaires ---------- */
+  .panel {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
+    animation: slide .18s ease;
+  }
+  .panel.show { display: block; }
+  @keyframes slide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .panel h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: var(--blue-900);
+  }
+  .panel .hint {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  label.field { display: block; font-size: 13px; font-weight: 600; color: var(--blue-900); }
+  label.field span.req { color: var(--err); }
+  input[type=text], input[type=date], select {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 12px;
+    font: inherit;
+    font-weight: 400;
+    color: var(--ink);
+    background: var(--blue-50);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .12s, box-shadow .12s, background .12s;
+  }
+  input:focus, select:focus {
+    background: #fff;
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .20);
+  }
+
+  /* Choix du lieu : deux grosses pastilles */
+  .lieux { display: flex; gap: 10px; margin-top: 6px; }
+  .lieux label {
+    flex: 1;
+    display: block;
+    cursor: pointer;
+  }
+  .lieux input { position: absolute; opacity: 0; pointer-events: none; }
+  .lieux .chip {
+    display: block;
+    padding: 10px 12px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--blue-700);
+    background: var(--blue-50);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    transition: all .12s;
+  }
+  .lieux input:checked + .chip {
+    background: var(--blue-700);
+    border-color: var(--blue-700);
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(29, 78, 216, .30);
+  }
+  .lieux input:focus-visible + .chip { box-shadow: 0 0 0 3px rgba(59, 130, 246, .35); }
+
+  .submit-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  .btn-submit {
+    padding: 11px 22px;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(29, 78, 216, .30);
+    transition: transform .1s, box-shadow .1s, opacity .1s;
+  }
+  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(29, 78, 216, .38); }
+  .btn-submit:disabled { opacity: .55; cursor: wait; transform: none; }
+  .btn-cancel {
+    padding: 11px 16px;
+    border: 0; background: none;
+    color: var(--muted);
+    font: inherit; font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-cancel:hover { color: var(--blue-900); }
+
+  /* ---------- Messages ---------- */
+  .notice {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+  }
+  .notice.show { display: block; }
+  .notice.ok   { background: var(--ok-bg);   color: var(--ok); }
+  .notice.err  { background: var(--err-bg);  color: var(--err); }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+
+  .toast {
+    position: fixed;
+    right: 16px; bottom: 16px;
+    max-width: 320px;
+    padding: 12px 16px;
+    background: var(--ok);
+    color: #fff;
+    border-radius: 12px;
+    font-weight: 600;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all .2s;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* Rappel des auditions déjà programmées */
+  .already {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--blue-50);
+    border: 1px dashed var(--blue-500);
+    border-radius: 12px;
+    font-size: 13px;
+    display: none;
+  }
+  .already.show { display: block; }
+  .already b { color: var(--blue-900); }
+  .already ul { margin: 6px 0 0; padding-left: 18px; }
+  .already li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="actions">
+  <button class="btn-action" data-form="f-dossier">
+    <span class="ico">📁</span>
+    <span>Nouveau dossier<small>Ajouter une procédure au suivi</small></span>
+  </button>
+  <button class="btn-action" data-form="f-audition">
+    <span class="ico">🗓️</span>
+    <span>Programmer une audition<small>Mineur : Creil ou unité</small></span>
+  </button>
+  <button class="btn-action" data-form="f-retrans">
+    <span class="ico">✍️</span>
+    <span>Confier la retranscription<small>Désigner un personnel</small></span>
+  </button>
+  <button class="btn-action" data-form="f-cloture">
+    <span class="ico">✅</span>
+    <span>Clôturer un dossier<small>Fin des investigations</small></span>
+  </button>
+</div>
+
+<!-- ============ Nouveau dossier ============ -->
+<section class="panel" id="f-dossier">
+  <h2>Nouveau dossier</h2>
+  <p class="hint">La procédure est ajoutée au suivi avec le statut « En cours ».</p>
+  <div class="grid">
+    <label class="field">Référence de la procédure <span class="req">*</span>
+      <input type="text" id="d-ref" placeholder="Ex. 2026/0123">
+    </label>
+    <label class="field">Date d'ouverture
+      <input type="date" id="d-date">
+    </label>
+  </div>
+  <div class="submit-row">
+    <button class="btn-submit" id="d-go">Créer le dossier</button>
+    <button class="btn-cancel" data-cancel>Fermer</button>
+  </div>
+  <div class="notice" id="d-msg"></div>
+</section>
+
+<!-- ============ Programmer une audition de mineur ============ -->
+<section class="panel" id="f-audition">
+  <h2>Programmer une audition de mineur</h2>
+  <p class="hint">Un même dossier peut avoir plusieurs auditions de mineur : chaque envoi ajoute une programmation.</p>
+  <div class="grid">
+    <label class="field">Dossier <span class="req">*</span>
+      <select id="a-dossier"></select>
+    </label>
+    <label class="field">Date de l'audition <span class="req">*</span>
+      <input type="date" id="a-date">
+    </label>
+    <div class="field">
+      <div style="font-size:13px;font-weight:600;color:var(--blue-900)">Lieu <span class="req">*</span></div>
+      <div class="lieux">
+        <label><input type="radio" name="a-lieu" value="Creil" checked><span class="chip">📍 Creil</span></label>
+        <label><input type="radio" name="a-lieu" value="Unité"><span class="chip">🏢 Unité</span></label>
+      </div>
+    </div>
+    <label class="field">Personnel désigné pour l'audition <span class="req">*</span>
+      <select id="a-perso"></select>
+    </label>
+  </div>
+  <div class="already" id="a-already"></div>
+  <div class="submit-row">
+    <button class="btn-submit" id="a-go">Programmer l'audition</button>
+    <button class="btn-cancel" data-cancel>Fermer</button>
+  </div>
+  <div class="notice" id="a-msg"></div>
+</section>
+
+<!-- ============ Confier la retranscription ============ -->
+<section class="panel" id="f-retrans">
+  <h2>Confier la retranscription</h2>
+  <p class="hint">Seules les auditions de mineur dont la retranscription n'est pas encore confiée sont proposées. Le personnel peut être différent de celui désigné pour l'audition.</p>
+  <div class="grid">
+    <label class="field">Audition de mineur <span class="req">*</span>
+      <select id="r-audition"></select>
+    </label>
+    <label class="field">Personnel chargé de la retranscription <span class="req">*</span>
+      <select id="r-perso"></select>
+    </label>
+    <label class="field">Date d'attribution
+      <input type="date" id="r-date">
+    </label>
+  </div>
+  <div class="submit-row">
+    <button class="btn-submit" id="r-go">Confier la retranscription</button>
+    <button class="btn-cancel" data-cancel>Fermer</button>
+  </div>
+  <div class="notice" id="r-msg"></div>
+</section>
+
+<!-- ============ Clôture ============ -->
+<section class="panel" id="f-cloture">
+  <h2>Clôture de dossier</h2>
+  <p class="hint">Le dossier passe au statut « Terminé » et la date de fin des investigations est enregistrée.</p>
+  <div class="grid">
+    <label class="field">Dossier à clôturer <span class="req">*</span>
+      <select id="c-dossier"></select>
+    </label>
+    <label class="field">Date de fin des investigations
+      <input type="date" id="c-date">
+    </label>
+  </div>
+  <div class="notice" id="c-warn"></div>
+  <div class="submit-row">
+    <button class="btn-submit" id="c-go">Clôturer le dossier</button>
+    <button class="btn-cancel" data-cancel>Fermer</button>
+  </div>
+  <div class="notice" id="c-msg"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   Widget personnalisé Grist : 4 boutons pour la gestion des auditions
+   de mineurs.
+
+   Tables et colonnes attendues (noms exacts) :
+   - Personnel : Nom (texte), Actif (oui/non, facultatif)
+   - Dossiers  : Reference, Date_ouverture, Statut (En cours / Terminé),
+                 Fin_investigations
+   - Auditions : Dossier (réf. Dossiers), Type (RL / Mineur), Date,
+                 Lieu (Creil / Unité), Personnel_audition (réf. Personnel),
+                 Retranscripteur (réf. Personnel), Date_attribution,
+                 Date_fin_retrans
+------------------------------------------------------------------- */
+grist.ready({ requiredAccess: 'full' });
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Utilitaires ---------- */
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Grist stocke une date en secondes depuis 1970, à minuit UTC
+function toGristDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) / 1000;
+}
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear();
+}
+async function loadTable(name) {
+  const t = await grist.docApi.fetchTable(name);
+  const rows = [];
+  const n = (t.id || []).length;
+  for (let i = 0; i < n; i++) {
+    const r = {};
+    for (const k in t) r[k] = t[k][i];
+    rows.push(r);
+  }
+  return rows;
+}
+function fillSelect(sel, items, placeholder) {
+  sel.innerHTML = '';
+  const o = document.createElement('option');
+  o.value = '';
+  o.textContent = placeholder;
+  sel.appendChild(o);
+  items.forEach((it) => {
+    const op = document.createElement('option');
+    op.value = it.value;
+    op.textContent = it.label;
+    sel.appendChild(op);
+  });
+}
+function showMsg(id, text, kind) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = 'notice show ' + kind;
+}
+function clearMsg(id) { $(id).className = 'notice'; }
+let toastTimer;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = '✔ ' + text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+function friendlyError(e) {
+  const m = (e && e.message) ? e.message : String(e);
+  if (/table|column|colonne/i.test(m)) {
+    return 'Erreur : une table ou une colonne attendue est introuvable (' + m + '). Vérifiez les noms Personnel / Dossiers / Auditions et leurs colonnes.';
+  }
+  return 'Erreur : ' + m;
+}
+async function run(btn, msgId, fn) {
+  btn.disabled = true;
+  clearMsg(msgId);
+  try {
+    await fn();
+  } catch (e) {
+    console.error(e);
+    showMsg(msgId, friendlyError(e), 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------- Chargement des listes ---------- */
+async function getPersonnel() {
+  const rows = await loadTable('Personnel');
+  return rows
+    .filter((r) => r.Actif !== false && r.Nom)
+    .sort((a, b) => String(a.Nom).localeCompare(String(b.Nom), 'fr'))
+    .map((r) => ({ value: r.id, label: r.Nom }));
+}
+async function getDossiersEnCours() {
+  const rows = await loadTable('Dossiers');
+  return rows
+    .filter((r) => r.Statut === 'En cours' && r.Reference)
+    .sort((a, b) => String(a.Reference).localeCompare(String(b.Reference), 'fr', { numeric: true }))
+    .map((r) => ({ value: r.id, label: r.Reference }));
+}
+
+/* ---------- Navigation entre les boutons ---------- */
+const panels = document.querySelectorAll('.panel');
+const buttons = document.querySelectorAll('.btn-action');
+
+function closeAll() {
+  panels.forEach((p) => p.classList.remove('show'));
+  buttons.forEach((b) => b.classList.remove('active'));
+}
+buttons.forEach((b) => {
+  b.addEventListener('click', async () => {
+    const id = b.dataset.form;
+    if (b.classList.contains('active')) { closeAll(); return; }
+    closeAll();
+    b.classList.add('active');
+    $(id).classList.add('show');
+    try {
+      await openForm(id);
+    } catch (e) {
+      console.error(e);
+      const msg = { 'f-dossier': 'd-msg', 'f-audition': 'a-msg', 'f-retrans': 'r-msg', 'f-cloture': 'c-msg' }[id];
+      showMsg(msg, friendlyError(e), 'err');
+    }
+  });
+});
+document.querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', closeAll));
+
+async function openForm(id) {
+  if (id === 'f-dossier') {
+    $('d-date').value = todayStr();
+    $('d-ref').value = '';
+    clearMsg('d-msg');
+    $('d-ref').focus();
+  }
+  if (id === 'f-audition') {
+    $('a-date').value = '';
+    clearMsg('a-msg');
+    $('a-already').className = 'already';
+    const [dossiers, perso] = await Promise.all([getDossiersEnCours(), getPersonnel()]);
+    fillSelect($('a-dossier'), dossiers, '— Choisir un dossier —');
+    fillSelect($('a-perso'), perso, '— Choisir le personnel —');
+  }
+  if (id === 'f-retrans') {
+    $('r-date').value = todayStr();
+    clearMsg('r-msg');
+    const [auds, dossiers, perso] = await Promise.all([loadTable('Auditions'), loadTable('Dossiers'), getPersonnel()]);
+    const refDossier = {}; dossiers.forEach((d) => (refDossier[d.id] = d.Reference));
+    const nomPerso = {};
+    (await loadTable('Personnel')).forEach((p) => (nomPerso[p.id] = p.Nom));
+    const items = auds
+      .filter((a) => a.Type === 'Mineur' && !a.Retranscripteur)
+      .sort((a, b) => (a.Date || 0) - (b.Date || 0))
+      .map((a) => ({
+        value: a.id,
+        label: (refDossier[a.Dossier] || 'Dossier ?') + ' — ' + fmt(a.Date) + ' — ' + (a.Lieu || '?') +
+               (a.Personnel_audition ? ' — ' + (nomPerso[a.Personnel_audition] || '') : ''),
+      }));
+    fillSelect($('r-audition'), items, items.length ? '— Choisir une audition —' : '— Aucune retranscription à confier —');
+    fillSelect($('r-perso'), perso, '— Choisir le personnel —');
+  }
+  if (id === 'f-cloture') {
+    $('c-date').value = todayStr();
+    clearMsg('c-msg');
+    clearMsg('c-warn');
+    const dossiers = await getDossiersEnCours();
+    fillSelect($('c-dossier'), dossiers, '— Choisir un dossier —');
+  }
+}
+
+/* ---------- 1. Nouveau dossier ---------- */
+$('d-go').addEventListener('click', () => run($('d-go'), 'd-msg', async () => {
+  const ref = $('d-ref').value.trim();
+  if (!ref) { showMsg('d-msg', 'Merci de saisir la référence de la procédure.', 'err'); return; }
+  const existing = await loadTable('Dossiers');
+  if (existing.some((r) => String(r.Reference || '').trim().toLowerCase() === ref.toLowerCase())) {
+    showMsg('d-msg', 'Ce dossier existe déjà dans le suivi.', 'warn');
+    return;
+  }
+  const date = $('d-date').value || todayStr();
+  await grist.docApi.applyUserActions([
+    ['AddRecord', 'Dossiers', null, { Reference: ref, Date_ouverture: toGristDate(date), Statut: 'En cours' }],
+  ]);
+  showMsg('d-msg', 'Dossier « ' + ref + ' » ajouté au suivi.', 'ok');
+  toast('Dossier ajouté : ' + ref);
+  $('d-ref').value = '';
+  $('d-ref').focus();
+}));
+
+/* ---------- 2. Programmer une audition de mineur ---------- */
+$('a-dossier').addEventListener('change', async () => {
+  const box = $('a-already');
+  const id = Number($('a-dossier').value);
+  if (!id) { box.className = 'already'; return; }
+  try {
+    const auds = (await loadTable('Auditions'))
+      .filter((a) => a.Dossier === id && a.Type === 'Mineur')
+      .sort((a, b) => (a.Date || 0) - (b.Date || 0));
+    const nomPerso = {};
+    (await loadTable('Personnel')).forEach((p) => (nomPerso[p.id] = p.Nom));
+    if (!auds.length) {
+      box.innerHTML = '<b>Aucune audition de mineur programmée</b> pour ce dossier pour l\'instant.';
+    } else {
+      box.innerHTML = '<b>Déjà programmées pour ce dossier :</b><ul>' +
+        auds.map((a) => '<li>' + fmt(a.Date) + ' — ' + (a.Lieu || '?') + ' — ' + (nomPerso[a.Personnel_audition] || '—') + '</li>').join('') +
+        '</ul>';
+    }
+    box.className = 'already show';
+  } catch (e) { console.error(e); }
+});
+
+$('a-go').addEventListener('click', () => run($('a-go'), 'a-msg', async () => {
+  const dossier = Number($('a-dossier').value);
+  const date = $('a-date').value;
+  const lieu = document.querySelector('input[name="a-lieu"]:checked').value;
+  const perso = Number($('a-perso').value);
+  if (!dossier || !date || !perso) {
+    showMsg('a-msg', 'Merci de renseigner le dossier, la date et le personnel désigné.', 'err');
+    return;
+  }
+  await grist.docApi.applyUserActions([
+    ['AddRecord', 'Auditions', null, {
+      Dossier: dossier,
+      Type: 'Mineur',
+      Date: toGristDate(date),
+      Lieu: lieu,
+      Personnel_audition: perso,
+    }],
+  ]);
+  const label = $('a-dossier').selectedOptions[0].textContent;
+  showMsg('a-msg', 'Audition de mineur programmée le ' + fmt(toGristDate(date)) + ' (' + lieu + ') pour ' + label + '.', 'ok');
+  toast('Audition programmée : ' + label);
+  $('a-date').value = '';
+  $('a-dossier').dispatchEvent(new Event('change')); // rafraîchit le rappel
+}));
+
+/* ---------- 3. Confier la retranscription ---------- */
+$('r-go').addEventListener('click', () => run($('r-go'), 'r-msg', async () => {
+  const audition = Number($('r-audition').value);
+  const perso = Number($('r-perso').value);
+  const date = $('r-date').value || todayStr();
+  if (!audition || !perso) {
+    showMsg('r-msg', 'Merci de choisir l\'audition et le personnel chargé de la retranscription.', 'err');
+    return;
+  }
+  await grist.docApi.applyUserActions([
+    ['UpdateRecord', 'Auditions', audition, { Retranscripteur: perso, Date_attribution: toGristDate(date) }],
+  ]);
+  const nom = $('r-perso').selectedOptions[0].textContent;
+  showMsg('r-msg', 'Retranscription confiée à ' + nom + '.', 'ok');
+  toast('Retranscription confiée à ' + nom);
+  await openForm('f-retrans');
+  showMsg('r-msg', 'Retranscription confiée à ' + nom + '.', 'ok');
+}));
+
+/* ---------- 4. Clôture de dossier ---------- */
+$('c-dossier').addEventListener('change', async () => {
+  clearMsg('c-warn');
+  const id = Number($('c-dossier').value);
+  if (!id) return;
+  try {
+    const pending = (await loadTable('Auditions')).filter(
+      (a) => a.Dossier === id && a.Type === 'Mineur' && !a.Date_fin_retrans
+    );
+    if (pending.length) {
+      showMsg('c-warn',
+        '⚠ ' + pending.length + ' audition(s) de mineur sans retranscription terminée sur ce dossier. Vous pouvez quand même clôturer.',
+        'warn');
+    }
+  } catch (e) { console.error(e); }
+});
+
+$('c-go').addEventListener('click', () => run($('c-go'), 'c-msg', async () => {
+  const dossier = Number($('c-dossier').value);
+  const date = $('c-date').value || todayStr();
+  if (!dossier) { showMsg('c-msg', 'Merci de choisir le dossier à clôturer.', 'err'); return; }
+  await grist.docApi.applyUserActions([
+    ['UpdateRecord', 'Dossiers', dossier, { Statut: 'Terminé', Fin_investigations: toGristDate(date) }],
+  ]);
+  const label = $('c-dossier').selectedOptions[0].textContent;
+  toast('Dossier clôturé : ' + label);
+  await openForm('f-cloture');
+  showMsg('c-msg', 'Dossier « ' + label + ' » clôturé.', 'ok');
+}));
+</script>
+</body>
+</html>

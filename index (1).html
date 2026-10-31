@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMIV – Victimologie</title>
+<style>
+  :root{
+    --violet:#7c3aed; --violet-d:#4c1d95; --bg:#f4f1fb; --card:#fff; --ink:#1f1b2e; --muted:#6b6880;
+    --line:#e3def2; --green:#dcfce7; --green-b:#16a34a; --warn:#fff4e5; --warn-b:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header.banner{background:linear-gradient(135deg,#3b0764 0%,#6d28d9 50%,#a78bfa 100%);color:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 6px 20px rgba(76,29,149,.3)}
+  header.banner h1{margin:0;font-size:2rem;letter-spacing:.5px}
+  header.banner p{margin:4px 0 0;opacity:.85;font-size:.95rem}
+  section.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+  section.box h2{margin:0 0 10px;font-size:1.1rem}
+  .alerts{background:var(--warn);border-color:var(--warn-b)}
+  .alerts.ok{background:#f0fdf4;border-color:#86efac}
+  .alerts ul{margin:0;padding-left:18px}
+  .alerts li{margin:4px 0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:16px}
+  button{font:inherit;cursor:pointer}
+  .btn{background:var(--violet);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600}
+  .btn:hover{background:var(--violet-d)}
+  .btn.ghost{background:#fff;color:var(--violet-d);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#f3effd}
+  .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;padding:9px 14px;color:var(--muted)}
+  .seg button.on{background:var(--violet);color:#fff;font-weight:600}
+  .proc{border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden;background:#fff}
+  .proc.done{background:var(--green);border-color:var(--green-b)}
+  .proc-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;background:#f7f5fd;border-bottom:1px solid var(--line)}
+  .proc.done .proc-head{background:#bbf7d0}
+  .proc-head h3{margin:0;font-size:1.05rem}
+  .proc-head .meta{color:var(--muted);font-size:.85rem}
+  .proc-head .spacer{flex:1}
+  .complete{display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer}
+  .complete input{width:18px;height:18px}
+  .proc-body{padding:12px 14px}
+  ul.acts{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  li.act{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-left:6px solid var(--c);background:#fff;border:1px solid var(--line);border-left:6px solid var(--c);border-radius:8px;padding:6px 8px}
+  li.act.fait .act-main{text-decoration:line-through;opacity:.6}
+  .act-main{flex:1 1 230px;text-align:left;background:none;border:0;padding:4px;border-radius:6px}
+  .act-main:hover{background:#f3effd}
+  .act-main b{display:block}
+  .act-main .sched{font-size:.85rem;color:var(--muted)}
+  .act-main .sched.set{color:#166534;font-weight:600}
+  li.act input.obs{flex:2 1 220px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+  li.act input[type=checkbox]{width:18px;height:18px}
+  .x{background:none;border:0;color:#9ca3af;font-size:1rem;padding:4px 8px;border-radius:6px}
+  .x:hover{color:#b91c1c;background:#fee2e2}
+  form.adder{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  form.adder select,form.adder input{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+  form.adder input{flex:1 1 200px}
+  label.lbl{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 4px}
+  textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;resize:vertical}
+  .empty{color:var(--muted);text-align:center;padding:24px}
+  /* calendrier */
+  .cal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .cal-head h2{margin:0;flex:1;text-transform:capitalize}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line)}
+  .cal .dow{background:#f7f5fd;font-weight:600;text-align:center;padding:6px;font-size:.85rem;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .cal .cell{min-height:104px;padding:4px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff;overflow:hidden}
+  .cal .cell.out{background:#faf9fd}
+  .cal .cell.today{background:#fdf4ff;outline:2px solid var(--violet);outline-offset:-2px}
+  .cal .num{font-size:.8rem;color:var(--muted);font-weight:600}
+  .chip{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:2px 5px;margin-top:3px;font-size:.72rem;line-height:1.25;background:var(--c);color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip.fait{opacity:.5;text-decoration:line-through}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:.85rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;background:var(--c)}
+  dialog{border:0;border-radius:14px;padding:0;width:min(520px,94vw);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  dialog::backdrop{background:rgba(30,20,60,.5)}
+  dialog form.dlg{padding:18px;display:grid;gap:10px}
+  dialog h3{margin:0}
+  dialog input[type=text],dialog input[type=date]{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+  .dlg-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:6px}
+  ul.draft{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  ul.draft li{display:flex;align-items:center;gap:8px;border-left:6px solid var(--c);background:#faf9fd;border-radius:6px;padding:5px 8px}
+  ul.draft li span{flex:1}
+  footer{margin:20px 0 8px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;color:var(--muted);font-size:.85rem;align-items:center}
+  @media (max-width:700px){
+    .cal .cell{min-height:70px}
+    .chip{font-size:.62rem;padding:1px 3px}
+    header.banner h1{font-size:1.5rem}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="banner">
+    <h1>Victimologie</h1>
+    <p>Suivi des actes à réaliser par procédure</p>
+  </header>
+
+  <section class="box alerts" id="alerts"></section>
+
+  <div class="toolbar">
+    <button class="btn" id="btnAdd">＋ Ajouter une procédure</button>
+    <div class="seg" id="filters">
+      <button data-f="encours" class="on">Procédures en cours</button>
+      <button data-f="complete">Victimologie complète</button>
+      <button data-f="toutes">Toutes</button>
+    </div>
+  </div>
+
+  <section class="box">
+    <h2>Liste des procédures</h2>
+    <div id="list"></div>
+  </section>
+
+  <section class="box">
+    <div class="cal-head">
+      <button class="btn ghost" id="prev" aria-label="Mois précédent">◀</button>
+      <h2 id="calTitle"></h2>
+      <button class="btn ghost" id="today">Aujourd'hui</button>
+      <button class="btn ghost" id="next" aria-label="Mois suivant">▶</button>
+    </div>
+    <div class="cal" id="cal"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <footer>
+    <span>Les données sont enregistrées dans ce navigateur.</span>
+    <button class="btn ghost" id="btnExport">Exporter (sauvegarde)</button>
+    <button class="btn ghost" id="btnImport">Importer</button>
+    <input type="file" id="fileImport" accept="application/json" hidden>
+  </footer>
+</div>
+
+<!-- Nouvelle procédure -->
+<dialog id="dlgProc">
+  <form class="dlg" method="dialog" id="formProc">
+    <h3>Nouvelle procédure</h3>
+    <label>N° de procédure
+      <input type="text" id="newNum" placeholder="511/2026/0123" autocomplete="off" required>
+    </label>
+    <div>
+      <strong>Actes à réaliser</strong>
+      <div class="adder" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+        <select id="draftType"></select>
+        <input type="text" id="draftObs" placeholder="Observation (ex. : « Professeur »)" style="flex:1 1 180px">
+        <button type="button" class="btn ghost" id="draftAdd">Ajouter</button>
+      </div>
+    </div>
+    <ul class="draft" id="draftList"></ul>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="procCancel">Annuler</button>
+      <button type="submit" class="btn">Créer la procédure</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Programmation d'un acte -->
+<dialog id="dlgSched">
+  <form class="dlg" method="dialog" id="formSched">
+    <h3 id="schedTitle">Programmer</h3>
+    <div id="schedSub" style="color:var(--muted);font-size:.9rem"></div>
+    <label>Date
+      <input type="date" id="schedDate" required>
+    </label>
+    <label>Militaire désigné
+      <input type="text" id="schedMil" list="milList" placeholder="Grade et nom" autocomplete="off">
+      <datalist id="milList"></datalist>
+    </label>
+    <div class="dlg-actions">
+      <button type="button" class="btn danger" id="schedClear">Déprogrammer</button>
+      <button type="button" class="btn ghost" id="schedCancel">Annuler</button>
+      <button type="submit" class="btn">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  'use strict';
+  var KEY = 'amiv_victimologie_v1';
+
+  var TYPES = {
+    victime: {label:'Audition victime',     short:'Aud. victime', c:'#7c3aed', t:'#ffffff'},
+    temoin:  {label:'Audition témoin',      short:'Aud. témoin',  c:'#7dd3fc', t:'#0c4a6e'},
+    bta:     {label:'Audition MIV BTA',     short:'MIV BTA',      c:'#dc2626', t:'#ffffff'},
+    creil:   {label:'Audition MIV Creil',   short:'MIV Creil',    c:'#dc2626', t:'#ffffff'},
+    umj:     {label:'Rdv UMJ',              short:'UMJ',          c:'#facc15', t:'#422006'},
+    psy:     {label:'Rdv psy',              short:'Psy',          c:'#facc15', t:'#422006'},
+    retrans: {label:'Retranscription',      short:'Retranscr.',   c:'#16a34a', t:'#ffffff'},
+    libre:   {label:'Autre (champ libre)',  short:'Autre',        c:'#6b7280', t:'#ffffff'}
+  };
+  var ORDER = Object.keys(TYPES);
+
+  var procs = [];
+  try { procs = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ procs = []; }
+  var filter = 'encours';
+  var nowD = new Date();
+  var view = {y: nowD.getFullYear(), m: nowD.getMonth()};
+  var draft = [];
+  var schedCtx = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function fmt(s){ return s ? s.split('-').reverse().join('/') : ''; }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(procs)); }catch(e){} }
+  function touch(p){ p.modified = Date.now(); }
+  function find(pid){ return procs.filter(function(p){ return p.id === pid; })[0]; }
+  function findAct(p, aid){ return p.acts.filter(function(a){ return a.id === aid; })[0]; }
+  function changed(p){ if(p) touch(p); save(); render(); }
+
+  /* ---------- Alertes ---------- */
+  function hasPending(p){
+    var t = todayStr();
+    return p.acts.some(function(a){ return a.sched && a.sched.date >= t && !a.done; });
+  }
+  function renderAlerts(){
+    var box = $('alerts'), now = Date.now(), items = [];
+    procs.forEach(function(p){
+      if(p.complete) return;
+      if(!/^511\/[^\/\s]+\/[^\/\s]+$/.test((p.num||'').trim())) return;
+      var days = Math.floor((now - (p.modified || p.created || now)) / 86400000);
+      if(days >= 15 && !hasPending(p)){
+        items.push('<li><strong>'+esc(p.num)+'</strong> — aucune modification depuis '+days+' jours et aucune programmation en attente</li>');
+      }
+    });
+    if(items.length){
+      box.className = 'box alerts';
+      box.innerHTML = '<h2>⚠️ Alertes ('+items.length+')</h2><ul>'+items.join('')+'</ul>';
+    } else {
+      box.className = 'box alerts ok';
+      box.innerHTML = '<h2>✅ Alertes</h2><div>Aucune procédure 511/…/… à relancer.</div>';
+    }
+  }
+
+  /* ---------- Liste ---------- */
+  function actHtml(a){
+    var T = TYPES[a.type] || TYPES.libre;
+    var s = a.sched && a.sched.date
+      ? '<span class="sched set">📅 '+fmt(a.sched.date)+(a.sched.mil ? ' · '+esc(a.sched.mil) : '')+'</span>'
+      : '<span class="sched">Cliquer pour programmer</span>';
+    return '<li class="act'+(a.done?' fait':'')+'" style="--c:'+T.c+'" data-aid="'+a.id+'">'
+      + '<input type="checkbox" data-act="done" title="Réalisé"'+(a.done?' checked':'')+'>'
+      + '<button type="button" class="act-main" data-act="sched"><b>'+esc(T.label)+'</b>'+s+'</button>'
+      + '<input class="obs" type="text" data-field="aobs" placeholder="Observation (ex. : « Professeur »)" value="'+esc(a.obs)+'">'
+      + '<button type="button" class="x" data-act="delact" title="Supprimer l\'acte">✕</button>'
+      + '</li>';
+  }
+  function typeOptions(){
+    return ORDER.map(function(k){ return '<option value="'+k+'">'+esc(TYPES[k].label)+'</option>'; }).join('');
+  }
+  function procHtml(p){
+    var n = p.acts.length;
+    var prog = p.acts.filter(function(a){ return a.sched && a.sched.date; }).length;
+    return '<article class="proc'+(p.complete?' done':'')+'" data-id="'+p.id+'">'
+      + '<div class="proc-head">'
+      +   '<h3>N° '+esc(p.num)+'</h3>'
+      +   '<span class="meta">'+n+' acte'+(n>1?'s':'')+' · '+prog+' programmé'+(prog>1?'s':'')+'</span>'
+      +   '<span class="spacer"></span>'
+      +   '<button type="button" class="x" data-act="delproc" title="Supprimer la procédure">🗑</button>'
+      +   '<label class="complete"><input type="checkbox" data-act="complete"'+(p.complete?' checked':'')+'> Victimologie complète</label>'
+      + '</div>'
+      + '<div class="proc-body">'
+      +   (n ? '<ul class="acts">'+p.acts.map(actHtml).join('')+'</ul>' : '<div class="meta" style="color:var(--muted)">Aucun acte pour le moment.</div>')
+      +   '<form class="adder" data-act="addact"><select name="type">'+typeOptions()+'</select>'
+      +     '<input name="obs" type="text" placeholder="Observation (ex. : « Professeur »)">'
+      +     '<button class="btn ghost" type="submit">＋ Ajouter un acte</button></form>'
+      +   '<label class="lbl">Observations</label>'
+      +   '<textarea data-field="pobs" placeholder="Observations sur la procédure…">'+esc(p.obs)+'</textarea>'
+      + '</div></article>';
+  }
+  function renderFilters(){
+    var c = procs.filter(function(p){ return !p.complete; }).length;
+    var d = procs.length - c;
+    var btns = $('filters').children;
+    btns[0].textContent = 'Procédures en cours ('+c+')';
+    btns[1].textContent = 'Victimologie complète ('+d+')';
+    btns[2].textContent = 'Toutes ('+procs.length+')';
+    for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('on', btns[i].getAttribute('data-f') === filter); }
+  }
+  function renderList(){
+    var list = procs.filter(function(p){
+      return filter === 'toutes' || (filter === 'complete' ? p.complete : !p.complete);
+    });
+    $('list').innerHTML = list.length ? list.map(procHtml).join('')
+      : '<div class="empty">Aucune procédure à afficher.</div>';
+  }
+
+  /* ---------- Calendrier ---------- */
+  function renderCal(){
+    var y = view.y, m = view.m;
+    var first = new Date(y, m, 1);
+    var offset = (first.getDay() + 6) % 7;
+    var dim = new Date(y, m+1, 0).getDate();
+    var total = Math.ceil((offset + dim) / 7) * 7;
+    var by = {};
+    procs.forEach(function(p){ p.acts.forEach(function(a){
+      if(a.sched && a.sched.date){ (by[a.sched.date] = by[a.sched.date] || []).push({p:p, a:a}); }
+    }); });
+    $('calTitle').textContent = first.toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+    var dows = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    var h = dows.map(function(d){ return '<div class="dow">'+d+'</div>'; }).join('');
+    var t = todayStr();
+    for(var i=0;i<total;i++){
+      var day = i - offset + 1;
+      if(day < 1 || day > dim){ h += '<div class="cell out"></div>'; continue; }
+      var ds = y+'-'+pad(m+1)+'-'+pad(day);
+      var its = (by[ds] || []).sort(function(a,b){ return ORDER.indexOf(a.a.type) - ORDER.indexOf(b.a.type); });
+      h += '<div class="cell'+(ds===t?' today':'')+'"><div class="num">'+day+'</div>';
+      its.forEach(function(o){
+        var T = TYPES[o.a.type] || TYPES.libre;
+        var txt = T.short + ' · ' + o.p.num + (o.a.sched.mil ? ' · '+o.a.sched.mil : '');
+        var tip = T.label + ' — ' + o.p.num + (o.a.obs ? ' ('+o.a.obs+')' : '') + (o.a.sched.mil ? ' — '+o.a.sched.mil : '');
+        h += '<button type="button" class="chip'+(o.a.done?' fait':'')+'" style="--c:'+T.c+';--t:'+T.t+'" title="'+esc(tip)+'" data-act="sched" data-pid="'+o.p.id+'" data-aid="'+o.a.id+'">'+esc(txt)+'</button>';
+      });
+      h += '</div>';
+    }
+    $('cal').innerHTML = h;
+  }
+  function renderLegend(){
+    var seen = {}, out = [];
+    ORDER.forEach(function(k){
+      var T = TYPES[k], key = T.c+T.short;
+      out.push('<span style="--c:'+T.c+'"><i></i>'+esc(T.label)+'</span>');
+    });
+    $('legend').innerHTML = out.join('');
+  }
+
+  function render(){
+    renderAlerts(); renderFilters(); renderList(); renderCal();
+    var names = {}; procs.forEach(function(p){ p.acts.forEach(function(a){ if(a.sched && a.sched.mil) names[a.sched.mil] = 1; }); });
+    $('milList').innerHTML = Object.keys(names).map(function(n){ return '<option value="'+esc(n)+'">'; }).join('');
+  }
+
+  /* ---------- Actions ---------- */
+  function newAct(type, obs){ return {id: uid(), type: type, obs: obs || '', sched: null, done: false}; }
+
+  function openSched(pid, aid){
+    var p = find(pid); if(!p) return; var a = findAct(p, aid); if(!a) return;
+    schedCtx = {pid: pid, aid: aid};
+    var T = TYPES[a.type] || TYPES.libre;
+    $('schedTitle').textContent = T.label;
+    $('schedSub').textContent = 'Procédure ' + p.num + (a.obs ? ' — ' + a.obs : '');
+    $('schedDate').value = (a.sched && a.sched.date) || todayStr();
+    $('schedMil').value = (a.sched && a.sched.mil) || '';
+    $('schedClear').style.display = a.sched ? '' : 'none';
+    $('dlgSched').showModal();
+  }
+
+  document.addEventListener('click', function(e){
+    var el = e.target.closest('[data-act]'); if(!el) return;
+    var act = el.getAttribute('data-act');
+    var pEl = el.closest('[data-id]'), aEl = el.closest('[data-aid]');
+    var p = el.getAttribute('data-pid') ? find(el.getAttribute('data-pid')) : (pEl ? find(pEl.getAttribute('data-id')) : null);
+    var aid = el.getAttribute('data-aid') || (aEl ? aEl.getAttribute('data-aid') : null);
+    if(act === 'sched' && p){ openSched(p.id, aid); }
+    else if(act === 'delact' && p){
+      if(confirm('Supprimer cet acte ?')){ p.acts = p.acts.filter(function(a){ return a.id !== aid; }); changed(p); }
+    }
+    else if(act === 'delproc' && p){
+      if(confirm('Supprimer la procédure '+p.num+' et tous ses actes ?')){ procs = procs.filter(function(x){ return x !== p; }); changed(); }
+    }
+  });
+
+  document.addEventListener('change', function(e){
+    var el = e.target, act = el.getAttribute('data-act'), field = el.getAttribute('data-field');
+    var pEl = el.closest('[data-id]'); if(!pEl) return;
+    var p = find(pEl.getAttribute('data-id')); if(!p) return;
+    var aEl = el.closest('[data-aid]'), a = aEl ? findAct(p, aEl.getAttribute('data-aid')) : null;
+    if(act === 'complete'){ p.complete = el.checked; changed(p); }
+    else if(act === 'done' && a){ a.done = el.checked; changed(p); }
+    else if(field === 'aobs' && a){ a.obs = el.value; changed(p); }
+    else if(field === 'pobs'){ p.obs = el.value; changed(p); }
+  });
+
+  document.addEventListener('submit', function(e){
+    var f = e.target;
+    if(f.getAttribute('data-act') === 'addact'){
+      e.preventDefault();
+      var p = find(f.closest('[data-id]').getAttribute('data-id')); if(!p) return;
+      var type = f.elements.type.value, obs = f.elements.obs.value.trim();
+      if(type === 'libre' && !obs){ f.elements.obs.focus(); f.elements.obs.placeholder = 'Précisez l’acte ici'; return; }
+      p.acts.push(newAct(type, obs)); changed(p);
+    }
+  });
+
+  $('filters').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    filter = b.getAttribute('data-f'); render();
+  });
+
+  /* nouvelle procédure */
+  function renderDraft(){
+    $('draftList').innerHTML = draft.map(function(a, i){
+      var T = TYPES[a.type];
+      return '<li style="--c:'+T.c+'"><span><b>'+esc(T.label)+'</b>'+(a.obs ? ' — '+esc(a.obs) : '')+'</span>'
+        + '<button type="button" class="x" data-i="'+i+'">✕</button></li>';
+    }).join('');
+  }
+  $('draftType').innerHTML = typeOptions();
+  $('btnAdd').addEventListener('click', function(){
+    draft = []; $('newNum').value = ''; $('draftObs').value = ''; renderDraft(); $('dlgProc').showModal(); $('newNum').focus();
+  });
+  $('draftAdd').addEventListener('click', function(){
+    var type = $('draftType').value, obs = $('draftObs').value.trim();
+    if(type === 'libre' && !obs){ $('draftObs').focus(); return; }
+    draft.push(newAct(type, obs)); $('draftObs').value = ''; renderDraft();
+  });
+  $('draftList').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-i]'); if(!b) return;
+    draft.splice(+b.getAttribute('data-i'), 1); renderDraft();
+  });
+  $('procCancel').addEventListener('click', function(){ $('dlgProc').close(); });
+  $('formProc').addEventListener('submit', function(e){
+    e.preventDefault();
+    var num = $('newNum').value.trim(); if(!num) return;
+    if(procs.some(function(p){ return p.num.toLowerCase() === num.toLowerCase(); })){
+      alert('Cette procédure existe déjà.'); return;
+    }
+    var now = Date.now();
+    procs.unshift({id: uid(), num: num, acts: draft.slice(), obs: '', complete: false, created: now, modified: now});
+    filter = 'encours'; save(); render(); $('dlgProc').close();
+  });
+
+  /* programmation */
+  $('schedCancel').addEventListener('click', function(){ $('dlgSched').close(); });
+  $('schedClear').addEventListener('click', function(){
+    var p = find(schedCtx.pid), a = p && findAct(p, schedCtx.aid);
+    if(a){ a.sched = null; changed(p); }
+    $('dlgSched').close();
+  });
+  $('formSched').addEventListener('submit', function(e){
+    e.preventDefault();
+    var p = find(schedCtx.pid), a = p && findAct(p, schedCtx.aid);
+    var d = $('schedDate').value; if(!a || !d) return;
+    a.sched = {date: d, mil: $('schedMil').value.trim()};
+    var dt = d.split('-'); view = {y: +dt[0], m: +dt[1]-1};
+    changed(p); $('dlgSched').close();
+  });
+
+  /* calendrier */
+  $('prev').addEventListener('click', function(){ view.m--; if(view.m < 0){ view.m = 11; view.y--; } renderCal(); });
+  $('next').addEventListener('click', function(){ view.m++; if(view.m > 11){ view.m = 0; view.y++; } renderCal(); });
+  $('today').addEventListener('click', function(){ var d = new Date(); view = {y: d.getFullYear(), m: d.getMonth()}; renderCal(); });
+
+  /* export / import */
+  $('btnExport').addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify(procs, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'victimologie-' + todayStr() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  $('btnImport').addEventListener('click', function(){ $('fileImport').click(); });
+  $('fileImport').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var data = JSON.parse(r.result);
+        if(!Array.isArray(data)) throw new Error('format');
+        if(confirm('Remplacer les données actuelles par ce fichier ?')){ procs = data; save(); render(); }
+      }catch(err){ alert('Fichier invalide.'); }
+    };
+    r.readAsText(f); e.target.value = '';
+  });
+
+  renderLegend();
+  render();
+})();
+</script>
+</body>
+</html>
